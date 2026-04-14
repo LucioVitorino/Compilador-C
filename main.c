@@ -15,8 +15,8 @@ int main(int argc, char **argv)
         perror("Error opening file");
         return 1;
     }
-
     tokens = tokenize(fd);
+
     token_print_list(tokens);
     token_clear_list(&tokens);
     close(fd);

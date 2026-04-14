@@ -12,6 +12,7 @@ t_token *tokenize(int fd)
         i = 0;
         while (line[i]) {
             if(isalpha(line[i]) || line[i] == '_') {
+                //lógica para identificar identificadores
                 next = process_identifier_keyWord(&line[i], &tokens, row);
                 i = (int)(next - line) - 1;
             }
@@ -61,9 +62,6 @@ t_token *tokenize(int fd)
                     // Lógica para reconhecer diretivas de pré-processamento
                     next = process_preprocessor_directive(&line[i], &tokens, row);
                     i = (int)(next - line) - 1;
-            }
-             else {
-                // Lógica para lidar com caracteres inválidos
             }
             i++;
         }

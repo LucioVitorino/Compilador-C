@@ -8,7 +8,7 @@ char *process_arithmetic_operator(char *line, t_token **tokens, int row)
      char *token_type;
 
     // Detectar operadores duplos (++ e --)
-    if ((operator_char == '+' || operator_char == '-') && line[1] == operator_char)
+    if ((operator_char == '+' || operator_char == '-') && (line[1] == operator_char || line[1] == '='))
         i = 2;
 
     token_value = strndup(line, i);
@@ -16,6 +16,8 @@ char *process_arithmetic_operator(char *line, t_token **tokens, int row)
         token_type = "INCREMENT_OP";
     else if (strcmp(token_value, "--") == 0)
         token_type = "DECREMENT_OP";
+    else if (token_value[1] == '=')
+        token_type = "ARITHMETIC_ASSIGNMENT_OP";
     else
         token_type = "ARITHMETIC_OP";
 

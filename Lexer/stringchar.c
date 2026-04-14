@@ -17,8 +17,9 @@ char *process_identifier_string_char(char *line, t_token **tokens, int row)
     if (line[i] == quote)
     {
         // validação de CHAR
-        if (quote == '\'' && i > 2)
+        if (quote == '\'' && i > 2 && line[1] != '\\')
         {
+            printf("%c -- %d", quote, i);
             printf("Erro léxico: char inválido na linha %d\n", row);
             return line + i + 1;
         }
@@ -52,13 +53,12 @@ char *process_division_operator_and_coment(char *line, t_token **tokens, int row
         token_type = "COMMENT";
         token_value = strndup(line, size);
         generate_token(tokens, token_value, token_type, row);
+        free(token_value);
         return line + size;
     }
     else if (line[i] == '*')
     {
     /* Comentário de bloco; acumulamos linhas enquanto não fecharmos '* /'.
-     * Inicializar token_value como string vazia para evitar uso de
-         * ponteiro não inicializado ao concatenar com ft_strjoin.
          */
         token_value = strdup("");
         i++; // Pula o '*' para começar a verificar o conteúdo do comentário
@@ -68,14 +68,15 @@ char *process_division_operator_and_coment(char *line, t_token **tokens, int row
             if (line[i] == '\n')
             {
                 row++;
-                char *part = strndup(line, i); /* trecho até o fim desta linha */
+                char *part = strndup(line, i); 
                 char *joined = ft_strjoin(token_value, part);
                 free(token_value);
                 free(part);
                 token_value = joined;
-                char *next = get_next_line(fd); /* Lê a próxima linha do arquivo */
+                char *next = get_next_line(fd);
                 if (!next)
                     break;
+                free(line);
                 line = next;
                 i = 0;
             }
@@ -89,9 +90,10 @@ char *process_division_operator_and_coment(char *line, t_token **tokens, int row
         token_value = joined;
         generate_token(tokens, token_value, token_type, row);
         free(token_value);
-        return line + i + 2; /* Ignora o comentário */
+        return line + i + 2;
     }
 
     token_value = strndup(line, 1); // Apenas o operador de divisão
-    return line + i; // Retorna a posição após o operador de divisão
+    free(token_value);
+    return line + i;
 }
