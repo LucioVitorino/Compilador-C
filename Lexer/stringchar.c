@@ -76,7 +76,6 @@ char *process_division_operator_and_coment(char *line, t_token **tokens, int row
                 char *next = get_next_line(fd);
                 if (!next)
                     break;
-                free(line);
                 line = next;
                 i = 0;
             }

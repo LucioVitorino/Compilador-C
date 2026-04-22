@@ -9,12 +9,9 @@ CFLAGS  := -Wall -Wextra -g
 # Incluir directorias (ajuste se tiver headers noutros locais)
 INCLUDES := -I.
 
-# Nome do executável
 NAME    := analisador_lexico
 
-# Procurar todos os ficheiros .c do projecto, excluindo a pasta ./test
 ## Lista explícita de ficheiros do projecto (main no root, e ficheiros em Lexer/ e utils/)
-# Ajuste aqui se adicionar/retirar ficheiros fonte
 SRCS := main.c \
 	Lexer/lexer.c \
 	Lexer/idenumKey.c \
