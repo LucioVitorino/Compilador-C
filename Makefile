@@ -23,6 +23,16 @@ SRCS := main.c \
 	Lexer/processor_directive.c \
 	utils/token_operating.c
 
+# AST and Parser
+SRCS += ast/ast.c \
+	parser/init.c \
+	parser/expressao.c \
+	parser/tipo.c \
+	parser/helpers.c \
+	parser/declaracao_global.c \
+	parser/programa.c \
+	parser/statements.c
+
 
 # Criar lista de .o correspondentes (preserva hierarquia: ./dir/file.o)
 OBJS := $(SRCS:.c=.o)

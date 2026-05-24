@@ -2,16 +2,75 @@
 
 char *process_preprocessor_directive(char *line, t_token **tokens, int row)
 {
-    int i = 1;
-    char *token_value;
-    char *token_type = "PREPROCESSOR_DIRECTIVE";
+    int i = 0; // index into line
+    // Expect line[0] == '#'
+    // Emit TOK_HASH
+    char *tokv = strndup("#", 1);
+    generate_token(tokens, tokv, "TOK_HASH", row);
+    free(tokv);
 
-    while (line[i] && line[i] != '\n')
-        i++;
+    i = 1;
+    // skip whitespace
+    while (line[i] && isspace((unsigned char)line[i])) i++;
 
-    token_value = strndup(line, i);
-    generate_token(tokens, token_value, token_type, row);
-    free(token_value);
+    // read directive name (letters)
+    int start = i;
+    while (line[i] && isalpha((unsigned char)line[i])) i++;
+    if (i > start) {
+        char *name = strndup(&line[start], i - start);
+        // special-case include
+        if (strcmp(name, "include") == 0) {
+            generate_token(tokens, strdup(name), "TOK_INCLUDE", row);
+            free(name);
+            while (line[i] && isspace((unsigned char)line[i])) i++;
+            if (line[i] == '<') {
+                generate_token(tokens, strdup("<"), "TOK_LT", row);
+                i++;
+                int fstart = i;
+                while (line[i] && line[i] != '>') i++;
+                char *fname = strndup(&line[fstart], i - fstart);
+                generate_token(tokens, fname, "TOK_NOME_FICHEIRO", row);
+                free(fname);
+                if (line[i] == '>') {
+                    generate_token(tokens, strdup(">"), "TOK_GT", row);
+                    i++;
+                }
+            } else if (line[i] == '"') {
+                generate_token(tokens, strdup("\""), "TOK_DQUOTE", row);
+                i++;
+                int fstart = i;
+                while (line[i] && line[i] != '"') i++;
+                char *fname = strndup(&line[fstart], i - fstart);
+                generate_token(tokens, fname, "TOK_NOME_FICHEIRO", row);
+                free(fname);
+                if (line[i] == '"') {
+                    generate_token(tokens, strdup("\""), "TOK_DQUOTE", row);
+                    i++;
+                }
+            } else {
+                // unknown form - capture rest as generic
+                int rstart = i;
+                while (line[i] && line[i] != '\n') i++;
+                char *rest = strndup(&line[rstart], i - rstart);
+                generate_token(tokens, rest, "TOK_DIRECTIVE_REST", row);
+                free(rest);
+            }
+        } else {
+            // other directives: emit generic directive name token
+            generate_token(tokens, name, "TOK_DIRECTIVE", row);
+            free(name);
+            // capture rest of line as directive content
+            int rstart = i;
+            while (line[i] && line[i] != '\n') i++;
+            if (i > rstart) {
+                char *rest = strndup(&line[rstart], i - rstart);
+                generate_token(tokens, rest, "TOK_DIRECTIVE_REST", row);
+                free(rest);
+            }
+        }
+    }
 
+    // return pointer to end of line
+    while (line[i] && line[i] != '\n') i++;
     return line + i;
 }

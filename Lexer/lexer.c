@@ -69,5 +69,7 @@ t_token *tokenize(int fd)
         free(line);
     }
 
+    // Append EOF token
+    generate_token(&tokens, "EOF", "TOK_EOF", row);
     return tokens;
 }

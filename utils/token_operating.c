@@ -21,7 +21,14 @@ t_token *token_create(const char *value, char *type, int line)
 	}
 	else
 		new_token->value = NULL;
-	new_token->type = type;
+	if (type) {
+		size_t tlen = strlen(type);
+		new_token->type = (char *)malloc(tlen + 1);
+		if (new_token->type) memcpy(new_token->type, type, tlen + 1);
+		else new_token->type = NULL;
+	} else {
+		new_token->type = NULL;
+	}
 	new_token->line = line;
 	new_token->next = NULL;
 	return new_token;
@@ -82,6 +89,7 @@ void token_clear_list(t_token **head)
 	{
 		next = current->next;
 		free(current->value);
+		free(current->type);
 		free(current);
 		current = next;
 	}
