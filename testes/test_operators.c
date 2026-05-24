@@ -11,13 +11,12 @@ int main()
     y--;
     
     x = x + 1;
-    y = y - 1;
+    y = y - 2;
     if (x == y || x >= 1 && x <= y)
     x /= 2;
     x *= 1;
     x += 1;
     x -= 2; 
 
-    
     return 0;
 }

@@ -21,6 +21,8 @@ int main(int argc, char **argv)
     tokens = tokenize(fd);
     token_print_list(tokens);
 
+    printf("\n\n=== AST ===\n\n");
+
     // integrar parser
     parser_init(&p, tokens);
     ASTNode *ast = parse_programa(&p);
