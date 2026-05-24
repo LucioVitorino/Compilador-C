@@ -62,19 +62,24 @@ static ASTNode *parse_lista_parametros_internal(Parser *p)
 }
 
 /* parse_parametros_opcionais: returns NULL for empty; returns a NODE_LISTA_DECL_GLOBAIS node for parameters; handles 'void' specially */
+// Em helpers.c
 ASTNode *parse_parametros_opcionais(Parser *p)
 {
     if (!p->current) return NULL;
+
+    // Mapeia o caso 'TOKEN_VOID' explícito da gramática
     if (p->current->type && strcmp(p->current->type, "KEYWORD_VOID") == 0) {
-        // 'void' as only parameter (no params)
-        parser_next_token(p);
-        return NULL;
+        int line = p->current->line;
+        parser_next_token(p); // consome 'void'
+
+        // Em vez de retornar NULL, cria um nó na AST representando que a lista é explicitamente void
+        ASTNode *void_node = make_node(NODE_LISTA_DECL_GLOBAIS, line);
+        add_filho(void_node, make_folha(NODE_ESPECIFICADOR_TIPO, "void", line));
+        return void_node;
     }
-    // if next token starts a type specifier
-    if (p->current && p->current->type && (strcmp(p->current->type, "KEYWORD_INT") == 0 || strcmp(p->current->type, "KEYWORD_FLOAT") == 0 || strcmp(p->current->type, "KEYWORD_CHAR") == 0 || strcmp(p->current->type, "KEYWORD_VOID") == 0 || strcmp(p->current->type, "IDENTIFIER") == 0)) {
-        return parse_lista_parametros_internal(p);
-    }
-    return NULL;
+
+    // Se não for void, tenta processar a lista normal de parâmetros
+    return parse_lista_parametros_internal(p); 
 }
 
 /* Expose wrappers used from other parser modules */

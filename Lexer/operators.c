@@ -4,20 +4,24 @@ char *process_arithmetic_operator(char *line, t_token **tokens, int row)
 {
     int i = 1;
     char operator_char = line[0];
-     char *token_value;
-     char *token_type;
+    char *token_value;
+    char *token_type;
 
-    // Detectar operadores duplos (++ e --)
-    if ((operator_char == '+' || operator_char == '-') && (line[1] == operator_char || line[1] == '='))
+    // CORREÇÃO: Expandido para detetar se qualquer um dos operadores (+, -, *, %) está seguido de '='
+    // Além de manter a deteção dos operadores duplos (++ e --)
+    if (((operator_char == '+' || operator_char == '-') && line[1] == operator_char) || line[1] == '=')
+    {
         i = 2;
+    }
 
     token_value = strndup(line, i);
-    if (strcmp(token_value, "++") == 0 )
+    
+    if (strcmp(token_value, "++") == 0)
         token_type = "INCREMENT_OP";
     else if (strcmp(token_value, "--") == 0)
         token_type = "DECREMENT_OP";
-    else if (token_value[1] == '=')
-        token_type = "ARITHMETIC_ASSIGNMENT_OP";
+    else if (i == 2 && token_value[1] == '=')
+        token_type = "ARITHMETIC_ASSIGNMENT_OP"; // Captura perfeitamente +=, -=, *=, %=
     else
         token_type = "ARITHMETIC_OP";
 
@@ -26,7 +30,6 @@ char *process_arithmetic_operator(char *line, t_token **tokens, int row)
 
     return line + i;
 }
-
 
 char *process_equals_sinal(char *line, t_token **tokens, int row)
 {

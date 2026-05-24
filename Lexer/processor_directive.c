@@ -2,8 +2,7 @@
 
 char *process_preprocessor_directive(char *line, t_token **tokens, int row)
 {
-    int i = 0; // index into line
-    // Expect line[0] == '#'
+    int i = 0; 
     // Emit TOK_HASH
     char *tokv = strndup("#", 1);
     generate_token(tokens, tokv, "TOK_HASH", row);
@@ -48,7 +47,6 @@ char *process_preprocessor_directive(char *line, t_token **tokens, int row)
                     i++;
                 }
             } else {
-                // unknown form - capture rest as generic
                 int rstart = i;
                 while (line[i] && line[i] != '\n') i++;
                 char *rest = strndup(&line[rstart], i - rstart);
@@ -56,10 +54,8 @@ char *process_preprocessor_directive(char *line, t_token **tokens, int row)
                 free(rest);
             }
         } else {
-            // other directives: emit generic directive name token
             generate_token(tokens, name, "TOK_DIRECTIVE", row);
             free(name);
-            // capture rest of line as directive content
             int rstart = i;
             while (line[i] && line[i] != '\n') i++;
             if (i > rstart) {
@@ -70,7 +66,15 @@ char *process_preprocessor_directive(char *line, t_token **tokens, int row)
         }
     }
 
-    // return pointer to end of line
-    while (line[i] && line[i] != '\n') i++;
+    // Avança de forma segura até encontrar o fim da linha ou o caractere nulo
+    while (line[i] && line[i] != '\n') {
+        i++;
+    }
+    
+    // Se parou no '\n', avançamos também o '\n' para que o lexer mude completamente de contexto
+    if (line[i] == '\n') {
+        i++;
+    }
+
     return line + i;
 }

@@ -57,6 +57,7 @@ const char *parser_peek_value(Parser *p);
 const char *parser_peek_type(Parser *p);
 int parser_consume_if_value(Parser *p, const char *val);
 int parser_consume_if_type(Parser *p, const char *type);
+void parser_sincronizar(Parser *p);
 
 
 #endif

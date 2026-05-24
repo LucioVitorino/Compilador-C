@@ -12,21 +12,12 @@ int main()
     
     x = x + 1;
     y = y - 1;
-if (x == y || x >= 1 && x <= y)
+    if (x == y || x >= 1 && x <= y)
     x /= 2;
     x *= 1;
     x += 1;
     x -= 2; 
-    x >>= 1;
-//     x <<= 1;
-/*sou muito mau*/
 
-/*Lúcio 
-Nguendelamba
-MArcial 
-vitorino*/ x &= 1;
-    x |= 2;
-    x ^= 3;
-
+    
     return 0;
 }

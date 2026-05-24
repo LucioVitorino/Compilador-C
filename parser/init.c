@@ -29,3 +29,31 @@ void parser_free(Parser *p)
 {
     (void)p;
 }
+
+void parser_sincronizar(Parser *p)
+{
+    // Avança e descarta tokens até encontrar um ponto seguro de sincronização
+    while (p->current)
+    {
+        // Se bater no Fim do Ficheiro, interrompe imediatamente
+        if (p->current->type && strcmp(p->current->type, "TOK_EOF") == 0)
+            break;
+
+        // Se encontrar um ponto e vírgula, consome-o. O pânico termina aqui.
+        if (p->current->value && strcmp(p->current->value, ";") == 0)
+        {
+            parser_next_token(p);
+            break;
+        }
+
+        // Se encontrar uma chaveta de fecho, NÃO a consome.
+        // Deixa que a função 'parse_bloco' a apanhe para fechar o escopo corretamente.
+        if (p->current->value && strcmp(p->current->value, "}") == 0)
+        {
+            break;
+        }
+
+        // Caso contrário, descarta o token inválido
+        parser_next_token(p);
+    }
+}

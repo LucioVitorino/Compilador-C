@@ -19,6 +19,7 @@ int main(int argc, char **argv)
         return 1;
     }
     tokens = tokenize(fd);
+    token_print_list(tokens);
 
     // integrar parser
     parser_init(&p, tokens);

@@ -9,7 +9,7 @@ CFLAGS  := -Wall -Wextra -g
 # Incluir directorias (ajuste se tiver headers noutros locais)
 INCLUDES := -I.
 
-NAME    := analisador_lexico
+NAME    := compilador
 
 ## Lista explícita de ficheiros do projecto (main no root, e ficheiros em Lexer/ e utils/)
 SRCS := main.c \

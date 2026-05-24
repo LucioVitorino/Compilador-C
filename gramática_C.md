@@ -65,8 +65,11 @@
 <resto_declaracao_geral> ::= TOKEN_SEMICOLON
                            | <asteriscos> TOKEN_IDENTIFIER <cauda_declaracao_geral>
 
-<cauda_declaracao_geral> ::= TOKEN_LPAREN <parametros_opcionais> TOKEN_RPAREN <bloco>
+<cauda_declaracao_geral> ::= TOKEN_LPAREN <parametros_opcionais> TOKEN_RPAREN <corpo_ou_ponto_virgula>
                            | <sufixo_array_opcional> <inicializacao_opcional> <mais_declaradores> TOKEN_SEMICOLON
+
+<corpo_ou_ponto_virgula> ::= <bloco>
+                           | TOKEN_SEMICOLON
 
 <asteriscos> ::= TOKEN_STAR <asteriscos>
                | ε

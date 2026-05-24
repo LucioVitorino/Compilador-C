@@ -156,12 +156,12 @@ ASTNode *parse_relacional(Parser *p)
     return left;
 }
 
-ASTNode *parse_igualdade(Parser *p)
+ASTNode *parse_bit_shift(Parser *p)
 {
     ASTNode *left = parse_relacional(p);
     while (p->current && p->current->value) {
         const char *v = p->current->value;
-        if (strcmp(v, "==") == 0 || strcmp(v, "!=") == 0) {
+        if (strcmp(v, "<<") == 0 || strcmp(v, ">>") == 0) {
             char *op = strdup(v);
             parser_next_token(p);
             ASTNode *right = parse_relacional(p);
@@ -175,13 +175,80 @@ ASTNode *parse_igualdade(Parser *p)
     return left;
 }
 
-ASTNode *parse_logico_e(Parser *p)
+ASTNode *parse_igualdade(Parser *p)
+{
+    ASTNode *left = parse_bit_shift(p);
+    while (p->current && p->current->value) {
+        const char *v = p->current->value;
+        if (strcmp(v, "==") == 0 || strcmp(v, "!=") == 0) {
+            char *op = strdup(v);
+            parser_next_token(p);
+            ASTNode *right = parse_bit_shift(p);
+            ASTNode *node = make_node(NODE_OP_BINARIO, 0);
+            node->op = op;
+            add_filho(node, left);
+            add_filho(node, right);
+            left = node;
+        } else break;
+    }
+    return left;
+}
+
+ASTNode *parse_bit_e(Parser *p)
 {
     ASTNode *left = parse_igualdade(p);
-    while (p->current && p->current->value && strcmp(p->current->value, "&&") == 0) {
+    while (p->current && p->current->value && strcmp(p->current->value, "&") == 0) {
         char *op = strdup(p->current->value);
         parser_next_token(p);
         ASTNode *right = parse_igualdade(p);
+        ASTNode *node = make_node(NODE_OP_BINARIO, 0);
+        node->op = op;
+        add_filho(node, left);
+        add_filho(node, right);
+        left = node;
+    }
+    return left;
+}
+
+ASTNode *parse_bit_xor(Parser *p)
+{
+    ASTNode *left = parse_bit_e(p);
+    while (p->current && p->current->value && strcmp(p->current->value, "^") == 0) {
+        char *op = strdup(p->current->value);
+        parser_next_token(p);
+        ASTNode *right = parse_bit_e(p);
+        ASTNode *node = make_node(NODE_OP_BINARIO, 0);
+        node->op = op;
+        add_filho(node, left);
+        add_filho(node, right);
+        left = node;
+    }
+    return left;
+}
+
+ASTNode *parse_bit_ou(Parser *p)
+{
+    ASTNode *left = parse_bit_xor(p);
+    while (p->current && p->current->value && strcmp(p->current->value, "|") == 0) {
+        char *op = strdup(p->current->value);
+        parser_next_token(p);
+        ASTNode *right = parse_bit_xor(p);
+        ASTNode *node = make_node(NODE_OP_BINARIO, 0);
+        node->op = op;
+        add_filho(node, left);
+        add_filho(node, right);
+        left = node;
+    }
+    return left;
+}
+
+ASTNode *parse_logico_e(Parser *p)
+{
+    ASTNode *left = parse_bit_ou(p);
+    while (p->current && p->current->value && strcmp(p->current->value, "&&") == 0) {
+        char *op = strdup(p->current->value);
+        parser_next_token(p);
+        ASTNode *right = parse_bit_ou(p);
         ASTNode *node = make_node(NODE_OP_BINARIO, 0);
         node->op = op;
         add_filho(node, left);
@@ -207,16 +274,22 @@ ASTNode *parse_logico_ou(Parser *p)
     return left;
 }
 
+// Em expressao.c — Garantindo suporte a todos os operadores da nova gramática
 ASTNode *parse_atribuicao(Parser *p)
 {
     ASTNode *left = parse_logico_ou(p);
+    
     if (p->current && p->current->value) {
         const char *v = p->current->value;
-        if (strcmp(v, "=") == 0 || strcmp(v, "+=") == 0 || strcmp(v, "-=") == 0 || strcmp(v, "*=") == 0 || strcmp(v, "/=") == 0 || strcmp(v, "%=") == 0) {
+        // Agora todos os operadores vêm unificados do Lexer com precisão
+        if (strcmp(v, "=") == 0 || strcmp(v, "+=") == 0 || strcmp(v, "-=") == 0 || 
+            strcmp(v, "*=") == 0 || strcmp(v, "/=") == 0 || strcmp(v, "%=") == 0) {
+
             char *op = strdup(v);
-            parser_next_token(p);
-            ASTNode *right = parse_atribuicao(p);
-            ASTNode *node = make_node(NODE_ATRIBUICAO, 0);
+            parser_next_token(p); // Consome o operador unificado de atribuição
+
+            ASTNode *right = parse_atribuicao(p); // Associatividade correta à direita
+            ASTNode *node = make_node(NODE_ATRIBUICAO, left->linha);
             node->op = op;
             add_filho(node, left);
             add_filho(node, right);

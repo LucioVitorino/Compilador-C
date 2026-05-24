@@ -11,17 +11,20 @@ ASTNode *parse_bloco(Parser *p)
     return blk;
 }
 
+// Em statements.c
 ASTNode *parse_lista_itens_bloco(Parser *p)
 {
     ASTNode *root = make_node(NODE_LISTA_DECL_GLOBAIS, 0);
-    while (p->current && p->current->value && strcmp(p->current->value, "}") != 0) {
+
+    while (p->current && p->current->value && strcmp(p->current->value, "}") != 0 && strcmp(p->current->type, "TOK_EOF") != 0) {
         ASTNode *it = parse_item_bloco(p);
         if (it) {
             add_filho(root, it);
         } else {
-            /* avoid infinite loop: always consume at least one token if no match */
-            if (p->current) parser_next_token(p);
-            else break;
+            // Se chegou aqui, encontramos lixo ou uma instrução completamente corrompida
+            printf("Erro Sintático na linha %d: Instrução ou item de bloco inválido.\n", 
+                   p->current ? p->current->line : 0);
+            parser_sincronizar(p);
         }
     }
     return root;
@@ -64,7 +67,15 @@ ASTNode *parse_declaracao_variavel_local(Parser *p)
                 if (p->current && p->current->value && strcmp(p->current->value, "=") == 0) { parser_next_token(p); parse_expressao(p); }
             } else break;
         }
-        parser_consume_if_value(p, ";");
+        
+        // Verificação explícita do ';' com emissão de erro e sincronização integrada
+        if (p->current && p->current->value && strcmp(p->current->value, ";") == 0) {
+            parser_next_token(p);
+        } else {
+            printf("Erro Sintático na linha %d: Esperado ';' após declaração da variável '%s'.\n", line, name);
+            parser_sincronizar(p);
+        }
+
         ASTNode *n = make_node(NODE_DECLARACAO_VARIAVEL, line);
         n->valor = strdup(name);
         add_filho(n, tipo);
@@ -75,11 +86,33 @@ ASTNode *parse_declaracao_variavel_local(Parser *p)
 
 ASTNode *parse_instrucao_expressao(Parser *p)
 {
-    ASTNode *e = parse_expressao(p);
-    parser_consume_if_value(p, ";");
-    ASTNode *n = make_node(NODE_INSTR_EXPR, 0);
-    if (e) add_filho(n, e);
-    return n;
+    if (!p->current) return NULL;
+
+    ASTNode *expr = parse_expressao(p);
+    
+    if (!expr) {
+        printf("Erro Sintático na linha %d: Expressão inválida.\n", p->current ? p->current->line : 0);
+        parser_sincronizar(p);
+        return NULL;
+    }
+
+    if (p->current && p->current->value && strcmp(p->current->value, ";") == 0) {
+        parser_next_token(p); 
+    } else {
+        printf("Erro Sintático na linha %d: Esperado ';' após a expressão.\n", expr->linha);
+        // Não engolimos palavras-chave estruturais como o IF/WHILE/RETURN na sincronização
+        if (p->current && p->current->type && 
+            (strcmp(p->current->type, "KEYWORD_IF") == 0 || 
+             strcmp(p->current->type, "KEYWORD_RETURN") == 0)) {
+            // Deixa passar para o loop principal tratar a instrução seguinte
+        } else {
+            parser_sincronizar(p);
+        }
+    }
+
+    ASTNode *node = make_node(NODE_INSTR_EXPR, expr->linha);
+    add_filho(node, expr);
+    return node;
 }
 
 ASTNode *parse_instrucao_if(Parser *p)
