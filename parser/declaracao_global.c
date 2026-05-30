@@ -27,8 +27,13 @@ ASTNode *parse_declaracao_global(Parser *p)
                     add_filho(n, fname);
                     parser_next_token(p);
                 }
-                if (!parser_consume_if_type(p, "TOK_GT"))
-                    recover_declaracao(p, "Falta o token '>' no include do sistema");
+                if (!parser_consume_if_type(p, "TOK_GT")) {
+                recover_declaracao(p, "Falta o token '>' no include do sistema");
+                // Avança os tokens até sair da linha do include quebrado
+                while (p->current && p->current->line == line) {
+                    parser_next_token(p);
+                }
+            }
             }
             else if (p->current && p->current->type && strcmp(p->current->type, "TOK_DQUOTE") == 0)
             {
@@ -40,8 +45,12 @@ ASTNode *parse_declaracao_global(Parser *p)
                     add_filho(n, fname);
                     parser_next_token(p);
                 }
-                if (!parser_consume_if_type(p, "TOK_DQUOTE"))
-                    recover_declaracao(p, "Falta a aspas de fecho no include local");
+                if (!parser_consume_if_type(p, "TOK_DQUOTE")) {
+                recover_declaracao(p, "Falta a aspas de fecho no include local");
+                while (p->current && p->current->line == line) {
+                    parser_next_token(p);
+                }
+            }
             }
             else
             {

@@ -1,5 +1,5 @@
 
-#include <stdio.h>
+#include <>
 #include "Lexer/token.h"
 
 int main()

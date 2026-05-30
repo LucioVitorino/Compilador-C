@@ -54,7 +54,8 @@ ASTNode *parse_instrucao_return(Parser *p);
 /* small helpers (implemented in helpers.c) */
 int parse_asteriscos(Parser *p);
 int parse_sufixo_array_opcional(Parser *p);
-ASTNode *parse_parametros_opcionais(Parser *p);
+ASTNode *parse_parametros_opcionais(Parser *p); 
+ASTNode *parse_diretiva_include(Parser *p);
 
 /* utilities */
 const char *parser_peek_value(Parser *p);

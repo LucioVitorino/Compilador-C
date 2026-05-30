@@ -11,10 +11,22 @@ ASTNode *parse_primario(Parser *p)
     }
     if (parser_consume_if_value(p, "(")) {
         ASTNode *e = parse_expressao(p);
-        parser_consume_if_value(p, ")");
+        if (!e) {
+            // Se a expressão interna for completamente inválida (ex: '( * 5);')
+            syntax_error_recover(p, "Expressão inválida ou vazia dentro dos parênteses", SYNC_EXPRESSAO);
+            return NULL;
+        }
+        
+        // Garante o parêntese de fecho ')'. Se não encontrar, entra em pânico controlado.
+        if (!parser_expect(p, ")", "Falta o parêntese de fecho ')' na expressão", SYNC_EXPRESSAO)) {
+            // Se o token atual for um ponto e vírgula, não o consumimos aqui
+            // para permitir que o parse_instrucao sincronize no sítio certo.
+            if (p->current && p->current->value && strcmp(p->current->value, ";") != 0) {
+                parser_next_token(p); 
+            }
+        }
         return e;
     }
-    return NULL;
 }
 
 /* multiplicative and additive are implemented below with unary/posfix handling */
@@ -39,10 +51,20 @@ ASTNode *parse_pos_fixo(Parser *p)
             add_filho(acc, idx);
             n = acc;
         } else if (strcmp(p->current->value, "(") == 0) {
-            parser_next_token(p);
+            int line = p->current->line;
+            parser_next_token(p); // Consome '('
+            
             ASTNode *args = parse_argumentos_opcionais(p);
-            parser_consume_if_value(p, ")");
-            ASTNode *call = make_node(NODE_CHAMADA_FUNC, 0);
+            
+            // Garante o parêntese de fecho ')'. Se falhar, sincroniza usando o SYNC_EXPRESSAO.
+            if (!parser_expect(p, ")", "Falta o parêntese de fecho ')' na chamada da função", SYNC_EXPRESSAO)) {
+                // Se encontrar um ponto e vírgula, preservamo-lo para a instrução superior tratar
+                if (p->current && p->current->value && strcmp(p->current->value, ";") != 0) {
+                    parser_next_token(p);
+                }
+            }
+            
+            ASTNode *call = make_node(NODE_CHAMADA_FUNC, line);
             add_filho(call, n);
             if (args) add_filho(call, args);
             n = call;
@@ -301,17 +323,37 @@ ASTNode *parse_atribuicao(Parser *p)
 
 ASTNode *parse_argumentos_opcionais(Parser *p)
 {
-    // returns a NODE_LISTA_DECL_GLOBAIS like parameters or NULL
     if (!p->current) return NULL;
+    // Se a chamada for imediata (ex: funcao()), não há argumentos
     if (p->current->value && strcmp(p->current->value, ")") == 0) return NULL;
-    ASTNode *root = make_node(NODE_LISTA_DECL_GLOBAIS, 0);
+    
+    ASTNode *root = make_node(NODE_LISTA_DECL_GLOBAIS, p->current->line);
+    
+    // 1. Processa o primeiro argumento
     ASTNode *first = parse_expressao(p);
-    if (!first) return NULL;
-    add_filho(root, first);
-    while (p->current && p->current->value && strcmp(p->current->value, ",") == 0) {
-        parser_next_token(p);
-        ASTNode *e = parse_expressao(p);
-        if (e) add_filho(root, e);
+    if (!first) {
+        syntax_error_recover(p, "Argumento inválido ou vazio na chamada da função", SYNC_EXPRESSAO);
+    } else {
+        add_filho(root, first);
     }
+    
+    // 2. Processa os restantes argumentos separados por vírgula
+    while (p->current && p->current->value && strcmp(p->current->value, ",") == 0) {
+        parser_next_token(p); // Consome ','
+        
+        // Proteção contra vírgula órfã no fim: funcao(a, b, )
+        if (p->current && p->current->value && strcmp(p->current->value, ")") == 0) {
+            syntax_error_recover(p, "Esperado argumento após a vírgula", SYNC_EXPRESSAO);
+            break;
+        }
+        
+        ASTNode *e = parse_expressao(p);
+        if (!e) {
+            syntax_error_recover(p, "Argumento inválido após a vírgula", SYNC_EXPRESSAO);
+        } else {
+            add_filho(root, e);
+        }
+    }
+    
     return root;
 }
