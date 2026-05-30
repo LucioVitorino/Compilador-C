@@ -1,5 +1,10 @@
 #include "parser.h"
 
+static void recover_declaracao(Parser *p, const char *msg)
+{
+    syntax_error_recover(p, msg, SYNC_DECLARACAO);
+}
+
 ASTNode *parse_declaracao_global(Parser *p)
 {
     // preprocessor directive: new tokenized form TOK_HASH TOK_INCLUDE ...
@@ -22,7 +27,8 @@ ASTNode *parse_declaracao_global(Parser *p)
                     add_filho(n, fname);
                     parser_next_token(p);
                 }
-                parser_consume_if_type(p, "TOK_GT");
+                if (!parser_consume_if_type(p, "TOK_GT"))
+                    recover_declaracao(p, "Falta o token '>' no include do sistema");
             }
             else if (p->current && p->current->type && strcmp(p->current->type, "TOK_DQUOTE") == 0)
             {
@@ -34,11 +40,16 @@ ASTNode *parse_declaracao_global(Parser *p)
                     add_filho(n, fname);
                     parser_next_token(p);
                 }
-                parser_consume_if_type(p, "TOK_DQUOTE");
+                if (!parser_consume_if_type(p, "TOK_DQUOTE"))
+                    recover_declaracao(p, "Falta a aspas de fecho no include local");
+            }
+            else
+            {
+                recover_declaracao(p, "Esperado '<' ou aspas duplas após '#include'");
             }
             return n;
         }
-        // if not include, fall through and let other directive handling happen
+        recover_declaracao(p, "Diretiva de preprocessador inválida");
     }
 
     // legacy: preprocessor directive captured as single token
@@ -57,6 +68,11 @@ ASTNode *parse_declaracao_global(Parser *p)
     {
         parser_next_token(p);
         ASTNode *tipo = parse_especificador_tipo(p);
+        if (!tipo)
+        {
+            recover_declaracao(p, "Esperado um tipo valido após 'typedef'");
+            return NULL;
+        }
         parse_asteriscos(p);
         if (p->current && p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0)
         {
@@ -65,24 +81,33 @@ ASTNode *parse_declaracao_global(Parser *p)
             parser_next_token(p);
             // skip optional array and semicolon
             parse_sufixo_array_opcional(p);
-            parser_consume_if_value(p, ";");
+            if (!parser_consume_if_value(p, ";"))
+                recover_declaracao(p, "Esperado ';' no final do typedef");
             ASTNode *n = make_node(NODE_DECLARACAO_TYPEDEF, line);
             n->valor = strdup(name);
             if (tipo)
                 add_filho(n, tipo);
             return n;
         }
+        recover_declaracao(p, "Esperado o nome do alias no typedef");
+        return NULL;
     }
 
     /* general declaration: type ... */
     ASTNode *tipo = parse_especificador_tipo(p);
     if (!tipo)
+    {
+        recover_declaracao(p, "Esperado um especificador de tipo na declaracao global");
         return NULL;
+    }
     // pointers
     int stars = parse_asteriscos(p);
     (void)stars;
     if (!p->current)
+    {
+        recover_declaracao(p, "Declaracao global incompleta");
         return NULL;
+    }
     if (p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0)
     {
         const char *name = p->current->value ? p->current->value : "";
@@ -94,7 +119,8 @@ ASTNode *parse_declaracao_global(Parser *p)
         {
             parser_next_token(p); // consome '('
             parse_parametros_opcionais(p);
-            parser_consume_if_value(p, ")");
+            if (!parser_consume_if_value(p, ")"))
+                recover_declaracao(p, "Falta o parêntese de fecho na declaracao da funcao");
 
             ASTNode *func = make_node(NODE_DECLARACAO_FUNCAO, line);
             func->valor = strdup(name);
@@ -113,6 +139,8 @@ ASTNode *parse_declaracao_global(Parser *p)
                 ASTNode *body = parse_bloco(p); // É a definição completa, processa o bloco {}
                 if (body)
                     add_filho(func, body);
+                else
+                    recover_declaracao(p, "Esperado corpo de funcao ou ';' no prototipo");
             }
             return func;
         }
@@ -130,6 +158,8 @@ ASTNode *parse_declaracao_global(Parser *p)
                 ASTNode *expr = parse_expressao(p);
                 if (expr)
                     add_filho(var, expr);
+                else
+                    recover_declaracao(p, "Expressão inválida na inicialização da variável global");
             }
             // lista de variáveis globais
             ASTNode *decl_list = make_node(NODE_LISTA_DECL_GLOBAIS, line);
@@ -154,6 +184,8 @@ ASTNode *parse_declaracao_global(Parser *p)
                         ASTNode *expr = parse_expressao(p);
                         if (expr)
                             add_filho(v, expr);
+                        else
+                            recover_declaracao(p, "Expressão inválida na inicialização de declarador global");
                     }
                     add_filho(decl_list, v);
                 }
@@ -162,12 +194,18 @@ ASTNode *parse_declaracao_global(Parser *p)
                     // skip junk until ;
                     while (p->current && p->current->value && strcmp(p->current->value, ";") != 0)
                         parser_next_token(p);
+                    recover_declaracao(p, "Esperado identificador após ',' na declaracao global");
                     break;
                 }
             }
-            parser_consume_if_value(p, ";");
+            if (!parser_consume_if_value(p, ";"))
+                recover_declaracao(p, "Esperado ';' no final da declaracao global");
             return decl_list;
         }
+    }
+    if (p->current) {
+        syntax_error_recover(p, "Esperado um especificador de tipo ou diretiva na declaracao global", SYNC_DECLARACAO);
+        return NULL;
     }
     return NULL;
 }

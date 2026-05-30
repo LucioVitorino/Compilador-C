@@ -4,10 +4,14 @@
 #include "../ast/ast.h"
 #include "../Lexer/token.h"
 
+typedef struct Parser Parser;
+
 typedef struct Parser {
     t_token *token_stream; /* pointer to tokens list head */
     t_token *current; /* current token pointer */
 } Parser;
+
+#include "panic_mode.h"
 
 void parser_init(Parser *p, t_token *tokens);
 ASTNode *parse_programa(Parser *p);
@@ -57,8 +61,6 @@ const char *parser_peek_value(Parser *p);
 const char *parser_peek_type(Parser *p);
 int parser_consume_if_value(Parser *p, const char *val);
 int parser_consume_if_type(Parser *p, const char *type);
-void parser_sincronizar_geral(Parser *p);
-int parser_expect(Parser *p, const char *valor_esperado, const char *mensagem_erro);
 
 
 #endif

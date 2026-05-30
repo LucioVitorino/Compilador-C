@@ -26,6 +26,7 @@ SRCS := main.c \
 # AST and Parser
 SRCS += ast/ast.c \
 	parser/init.c \
+	parser/panic_mode.c \
 	parser/expressao.c \
 	parser/tipo.c \
 	parser/helpers.c \

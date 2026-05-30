@@ -29,7 +29,15 @@ int main(int argc, char **argv)
     print_ast(ast, 0);
     free_ast(ast);
 
+    if (parser_error_count() > 0) {
+        fprintf(stderr, "\nForam encontrados %d erro(s) sintático(s).\n", parser_error_count());
+        token_clear_list(&tokens);
+        close(fd);
+        return 1;
+    }
+
     token_clear_list(&tokens);
     close(fd);
+    return 0;
 
 }
