@@ -46,40 +46,72 @@ static ASTNode *parse_parametro_internal(Parser *p)
     return param;
 }
 
-static ASTNode *parse_lista_parametros_internal(Parser *p)
+// Função auxiliar interna para processar a lista de parâmetros encadeados por vírgulas
+static void parse_lista_parametros_internal(Parser *p, ASTNode *func_node)
 {
-    ASTNode *root = make_node(NODE_LISTA_DECL_GLOBAIS, 0);
-    ASTNode *first = parse_parametro_internal(p);
-    if (!first) return NULL;
-    add_filho(root, first);
-    while (p->current && p->current->value && strcmp(p->current->value, ",") == 0) {
-        parser_next_token(p); // consume ','
-        ASTNode *pr = parse_parametro_internal(p);
-        if (pr) add_filho(root, pr);
-        else break;
-    }
-    return root;
+    do {
+        // 1. Lê o tipo do parâmetro (ex: int, float, char)
+        ASTNode *tipo_param = parse_especificador_tipo(p);
+        if (!tipo_param) {
+            syntax_error_recover(p, "Esperado um tipo de dado válido no parâmetro", SYNC_DECLARACAO);
+            break;
+        }
+
+        // Processa ponteiros opcionais (ex: int *ptr)
+        parse_asteriscos(p);
+
+        // 2. Lê o nome/identificador do parâmetro (ex: a, b)
+        if (p->current && p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0)
+        {
+            const char *p_name = p->current->value ? p->current->value : "";
+            int p_line = p->current->line;
+            
+            // 3. Cria o nó do parâmetro reutilizando NODE_DECLARACAO_VARIAVEL
+            ASTNode *param_node = make_folha(NODE_DECLARACAO_VARIAVEL, p_name, p_line);
+            
+            // 4. Une o tipo do dado ao nó do parâmetro
+            add_filho(param_node, tipo_param);
+            
+            // 5. ANEXA o parâmetro diretamente como filho do nó da função pai!
+            add_filho(func_node, param_node);
+            
+            parser_next_token(p); // Consome o IDENTIFIER
+            
+            // Suporte opcional a arrays (ex: int arr[])
+            parse_sufixo_array_opcional(p);
+        }
+        else
+        {
+            syntax_error_recover(p, "Esperado identificador do parâmetro após o tipo", SYNC_DECLARACAO);
+            break;
+        }
+
+    } while (p->current && p->current->value && strcmp(p->current->value, ",") == 0 && (parser_next_token(p), 1));
 }
 
-/* parse_parametros_opcionais: returns NULL for empty; returns a NODE_LISTA_DECL_GLOBAIS node for parameters; handles 'void' specially */
-// Em helpers.c
-ASTNode *parse_parametros_opcionais(Parser *p)
+// Função principal de tratamento de parâmetros na assinatura
+void parse_parametros_opcionais(Parser *p, ASTNode *func_node)
 {
-    if (!p->current) return NULL;
+    if (!p->current || !func_node) return;
 
-    // Mapeia o caso 'TOKEN_VOID' explícito da gramática
+    // Se o próximo token for ')', significa uma lista vazia: int main()
+    if (p->current->value && strcmp(p->current->value, ")") == 0) {
+        return;
+    }
+
+    // Mapeia o caso 'TOKEN_VOID' explícito da gramática: int soma(void)
     if (p->current->type && strcmp(p->current->type, "KEYWORD_VOID") == 0) {
         int line = p->current->line;
         parser_next_token(p); // consome 'void'
 
-        // Em vez de retornar NULL, cria um nó na AST representando que a lista é explicitamente void
-        ASTNode *void_node = make_node(NODE_LISTA_DECL_GLOBAIS, line);
-        add_filho(void_node, make_folha(NODE_ESPECIFICADOR_TIPO, "void", line));
-        return void_node;
+        // Cria uma folha indicando tipo void e anexa diretamente à função
+        ASTNode *void_node = make_folha(NODE_ESPECIFICADOR_TIPO, "void", line);
+        add_filho(func_node, void_node);
+        return;
     }
 
-    // Se não for void, tenta processar a lista normal de parâmetros
-    return parse_lista_parametros_internal(p); 
+    // Se houver parâmetros válidos (ex: int a, int b), processa a lista normal
+    parse_lista_parametros_internal(p, func_node); 
 }
 
 /* Expose wrappers used from other parser modules */

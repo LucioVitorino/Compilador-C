@@ -28,12 +28,12 @@ ASTNode *parse_declaracao_global(Parser *p)
                     parser_next_token(p);
                 }
                 if (!parser_consume_if_type(p, "TOK_GT")) {
-                recover_declaracao(p, "Falta o token '>' no include do sistema");
-                // Avança os tokens até sair da linha do include quebrado
-                while (p->current && p->current->line == line) {
-                    parser_next_token(p);
+                    recover_declaracao(p, "Falta o token '>' no include do sistema");
+                    // Avança os tokens até sair da linha do include quebrado
+                    while (p->current && p->current->line == line) {
+                        parser_next_token(p);
+                    }
                 }
-            }
             }
             else if (p->current && p->current->type && strcmp(p->current->type, "TOK_DQUOTE") == 0)
             {
@@ -46,11 +46,11 @@ ASTNode *parse_declaracao_global(Parser *p)
                     parser_next_token(p);
                 }
                 if (!parser_consume_if_type(p, "TOK_DQUOTE")) {
-                recover_declaracao(p, "Falta a aspas de fecho no include local");
-                while (p->current && p->current->line == line) {
-                    parser_next_token(p);
+                    recover_declaracao(p, "Falta a aspas de fecho no include local");
+                    while (p->current && p->current->line == line) {
+                        parser_next_token(p);
+                    }
                 }
-            }
             }
             else
             {
@@ -122,24 +122,29 @@ ASTNode *parse_declaracao_global(Parser *p)
         const char *name = p->current->value ? p->current->value : "";
         int line = p->current->line;
         parser_next_token(p);
-        // function? '(' => parse params and block
-        // Em declaracao_global.c — Alinhando com <cauda_declaracao_geral> e <corpo_ou_ponto_virgula>
+        
+        // RAMO DE FUNÇÃO: '(' => parse params e bloco interno
         if (p->current && p->current->value && strcmp(p->current->value, "(") == 0)
         {
+            // 1. Criamos o nó da função imediatamente para que seja o pai dos parâmetros
+            ASTNode *func = make_node(NODE_DECLARACAO_FUNCAO, line);
+            func->valor = strdup(name);
+            
+            // 2. O primeiro filho é o tipo de retorno
+            add_filho(func, tipo);
+
             parser_next_token(p); // consome '('
-            parse_parametros_opcionais(p);
+            
+            // 3. Passamos o nó da função para injetar lá os parâmetros mapeados
+            parse_parametros_opcionais(p, func);
+            
             if (!parser_consume_if_value(p, ")"))
                 recover_declaracao(p, "Falta o parêntese de fecho na declaracao da funcao");
 
-            ASTNode *func = make_node(NODE_DECLARACAO_FUNCAO, line);
-            func->valor = strdup(name);
-            add_filho(func, tipo);
-
-            // IMPLEMENTAÇÃO DA NOVA REGRA <corpo_ou_ponto_virgula>
+            // IMPLEMENTAÇÃO DA REGRA <corpo_ou_ponto_virgula>
             if (p->current && p->current->value && strcmp(p->current->value, ";") == 0)
             {
                 parser_next_token(p); // É um protótipo de função, consome ';' e fecha o nó
-                // Podes adicionar uma flag ou folha indicando que é apenas uma assinatura
                 ASTNode *proto = make_folha(NODE_IDENTIFICADOR, "proto", p->current ? p->current->line : line);
                 add_filho(func, proto);
             }
