@@ -1,62 +1,54 @@
 # Compilador-C
 
 ## Descrição
-Este projecto é um analisador léxico simples para a linguagem C. O programa lê um ficheiro fonte em C e produz uma lista de tokens (identificadores, keywords, literais, operadores, comentários, delimitadores, etc.). O código está organizado em pastas: `Lexer/` (lógica do lexer), `utils/` (funções utilitárias) e ficheiros de teste no root.
+Este projecto é um front-end de compilador em C, organizado em fases: lexer, parser, AST e análise semântica. O objectivo é ler um ficheiro fonte em C, transformar o texto em tokens, construir uma árvore sintática e validar regras semânticas sobre os símbolos encontrados.
 
-A crianção do lexer teve como base fundamental os conceitos de Linguagens Formais e Autómatos, como autômatos finitos, conceitos de máquinas de estado, expressões regulares só para mencionar alguns.
+O projecto foi desenvolvido como uma base educativa e de estudo para compreender os conceitos clássicos de compilação: autómatos, gramáticas, parsing descendente, AST, tabela de símbolos e recuperação de erro.
 
-O objectivo é fornecer um lexer educacional que reconheça operadores, identificadores, literais e comentários, e que sirva de base para um compilador mais completo.
+## Estrutura do projecto
+- [Lexer/](Lexer) — reconhecimento de tokens e lexemas.
+- [parser/](parser) — análise sintática, recuperação de erro e construção da AST.
+- [ast/](ast) — estrutura da árvore sintática.
+- [semantico/](semantico) — tabela de símbolos e análise semântica.
+- [utils/](utils) — funções auxiliares reutilizáveis.
+- [testes/](testes) — exemplos de código para validação.
+- [Manual_do_Programador.md](Manual_do_Programador.md) — guia técnico para manutenção e evolução do projecto.
 
-## Execução
-Passos para compilar e executar o projecto no Linux (bash):
+## Fases implementadas
+- Analisador Léxico: reconhecimento de identificadores, palavras-chave, literais, operadores, delimitadores e diretivas.
+- Parser: construção da AST através de uma abordagem descendente recursiva.
+- AST: representação hierárquica dos nós sintáticos.
+- Análise Semântica: construção e consulta da tabela de símbolos, com suporte a escopos, tipos, parâmetros e informação de símbolos.
 
-1. Abrir um terminal no directório do projecto (onde está o `Makefile`).
-
-2. Compilar: make
-
-Isto gera o executável `analisador_lexico` na raiz do projecto.
-
-3. Executar o analisador sobre um ficheiro de teste (por exemplo `test_operators.c`):
-
-```bash
-./analisador_lexico test_operators.c
-```
-
-A saída imprime uma lista de tokens no formato: `value= <valor>, type= <tipo>, line= <linha>`.
-
-Notas úteis:
-- Se alterar ficheiros `.c` ou `.h`, executar `make` de novo. Para limpar objectos use `make clean` e para remover executável `make fclean`.
-- O `Makefile` inclui flags de debug (`-g`) que ajudam a usar ferramentas como `gdb` ou `valgrind`.
-
-## Recursos (Tecnologias e Metodologia)
-- Linguagem: C (compatível com gcc)
-- Ferramentas de construção: Make (`Makefile` no root)
-- Utilitários usados durante desenvolvimento: `gdb`, `valgrind` (para debugging/diagnóstico de segfaults e leaks)
-
-Metodologia seguida:
-- Implementação incremental do lexer — funções pequenas e responsáveis por apenas um tipo de token (identificadores, strings/chars, operadores, comentários, literais numéricos).
-- Uso de testes manuais com ficheiros como `test_operators.c` para validar reconhecimento de operadores e comentários.
-- Debug com `gdb` e `valgrind` quando ocorreram erros de memória (segfaults ou leitura inválida).
-
-## Uso de IA
-Durante o desenvolvimento e diagnóstico deste projecto, a IA foi utilizada para:
-- Analisar o código e identificar possíveis acessos fora dos limites e chamadas com ponteiros errados (por exemplo, uso de `line['<']` em vez de `line[i]`).
-- Propor correções de forma segura (pequenas e localizadas) para evitar segfaults: correção de condições lógicas, passagem correta de ponteiros e inicialização de variáveis.
-- Sugerir melhorias de robustez, como validações defensivas em funções que manipulam strings e comentários multilinha.
-
-A IA foi utilizada como assistente de programação (pair-programming): sugeriu patches, executou compilação e testes locais, e produziu recomendações explicando as causas dos problemas e como confirmar as correções com `gdb`/`valgrind`.
-
-## Testes e verificação rápida
-- Teste rápido com `test_operators.c` incluído no repositório:
+## Como compilar
+No WSL, a compilação pode ser feita com o comando abaixo:
 
 ```bash
-make
-./analisador_lexico test_operators.c
+wsl bash -lc "cd /mnt/c/Users/eliza/lucio/Compilador-C && gcc -Wall -Wextra -g -I. -ILexer -Iparser -Iast -Iutils -Isemantico -o compilador main.c Lexer/lexer.c Lexer/idenumKey.c Lexer/operators.c Lexer/stringchar.c Lexer/numeric.c Lexer/processor_directive.c utils/get_next_line.c utils/ft_strjoin.c utils/token_operating.c ast/ast.c parser/init.c parser/panic_mode.c parser/expressao.c parser/tipo.c parser/helpers.c parser/declaracao_global.c parser/programa.c parser/statements.c semantico/tabela_simbolos.c semantico/analisador_semantico.c"
 ```
 
-- Para análise de memória/segfaults:
+## Como executar
+Depois da compilação, executar o programa com um ficheiro de teste:
 
 ```bash
-valgrind --leak-check=full --track-origins=yes ./analisador_lexico test_operators.c
+./compilador testes/teste_identificadores.c
 ```
+
+## Funcionalidades principais
+- Leitura de código fonte a partir de um ficheiro.
+- Geração de tokens com linha e tipo.
+- Construção de uma árvore sintática.
+- Recuperação de erros sintáticos em modo pânico.
+- Registo de símbolos em tabela de símbolos.
+- Suporte a estrutura para evolução da análise semântica.
+
+## Documentação
+- [Manual_do_Programador.md](Manual_do_Programador.md) — documentação técnica do projecto.
+- [gramática_C.md](gramática_C.md) — descrição da gramática usada como base.
+- [parser_mapa.md](parser_mapa.md) — mapa do fluxo do parser e da AST.
+
+## Notas úteis
+- O projecto foi validado no WSL com compilação directa via `gcc`.
+- O `make` não está disponível na distribuição WSL usada, por isso a compilação é feita de forma explícita.
+- Para depuração, o código inclui pontos de impressão da AST e da tabela de símbolos.
 
