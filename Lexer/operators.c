@@ -7,8 +7,6 @@ char *process_arithmetic_operator(char *line, t_token **tokens, int row)
     char *token_value;
     char *token_type;
 
-    // CORREÇÃO: Expandido para detetar se qualquer um dos operadores (+, -, *, %) está seguido de '='
-    // Além de manter a deteção dos operadores duplos (++ e --)
     if (((operator_char == '+' || operator_char == '-') && line[1] == operator_char) || line[1] == '=')
     {
         i = 2;

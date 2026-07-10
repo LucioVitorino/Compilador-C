@@ -19,8 +19,6 @@ ASTNode *parse_primario(Parser *p)
         
         // Garante o parêntese de fecho ')'. Se não encontrar, entra em pânico controlado.
         if (!parser_expect(p, ")", "Falta o parêntese de fecho ')' na expressão", SYNC_EXPRESSAO)) {
-            // Se o token atual for um ponto e vírgula, não o consumimos aqui
-            // para permitir que o parse_instrucao sincronize no sítio certo.
             if (p->current && p->current->value && strcmp(p->current->value, ";") != 0) {
                 parser_next_token(p); 
             }
@@ -56,9 +54,7 @@ ASTNode *parse_pos_fixo(Parser *p)
             
             ASTNode *args = parse_argumentos_opcionais(p);
             
-            // Garante o parêntese de fecho ')'. Se falhar, sincroniza usando o SYNC_EXPRESSAO.
             if (!parser_expect(p, ")", "Falta o parêntese de fecho ')' na chamada da função", SYNC_EXPRESSAO)) {
-                // Se encontrar um ponto e vírgula, preservamo-lo para a instrução superior tratar
                 if (p->current && p->current->value && strcmp(p->current->value, ";") != 0) {
                     parser_next_token(p);
                 }

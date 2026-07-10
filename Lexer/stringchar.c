@@ -3,13 +3,12 @@
 char *process_identifier_string_char(char *line, t_token **tokens, int row)
 {
     int i = 0;
-    char quote_type = line[0]; // Guarda se abriu com '"' ou com '\''
+    char quote_type = line[0];
     
-    i++; // Avança a aspa/plica de abertura
+    i++;
 
     // Avança tudo até encontrar a aspa de fecho ou o fim da string/linha
     while (line[i] && line[i] != quote_type) {
-        // Suporte a sequências de escape (ex: \") para não quebrar a string mais cedo
         if (line[i] == '\\' && line[i + 1]) {
             i += 2;
         } else {
@@ -79,7 +78,6 @@ char *process_division_operator_and_coment(char *line, t_token **tokens, int row
         }
     }
 
-    // CORREÇÃO: Verificar se é uma atribuição composta '/='
     if (line[i] == '=')
     {
         token_value = strndup(line, 2); // Captura "/="

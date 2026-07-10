@@ -70,6 +70,7 @@ typedef struct Symbol {
 typedef struct SymbolTable {
     Symbol              *table[HASH_SIZE];
     struct SymbolTable  *parent;      // Aponta para o escopo pai (Local -> Global)
+    long                 next_endereco; // Endereçamento simulado para o escopo actual
 } SymbolTable;
 
 // Protótipos das funções que já tens implementadas
@@ -77,6 +78,10 @@ SymbolTable  *create_table(SymbolTable *parent);
 unsigned int hash_function(const char *lexeme);
 bool         insert_symbol(SymbolTable *st, Symbol *sym);
 Symbol       *lookup_symbol(SymbolTable *st, const char *lexeme);
+Symbol       *lookup_symbol_current_scope(SymbolTable *st, const char *lexeme);
+const char   *tipo_dado_to_string(TipoDado tipo);
+bool         tipo_dado_eh_numerico(TipoDado tipo);
+bool         tipos_compativeis(TipoDado destino, TipoDado origem);
 void         free_table(SymbolTable *st);
 void         print_table(SymbolTable *st);
 void         analisar_semantica(ASTNode *node, SymbolTable *st, EscopoSimbolo escopo_atual);

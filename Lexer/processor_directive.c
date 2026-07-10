@@ -66,7 +66,7 @@ char *process_preprocessor_directive(char *line, t_token **tokens, int row)
         }
     }
 
-    // Avança de forma segura até encontrar o fim da linha ou o caractere nulo
+    // Avança até encontrar o fim da linha ou o caractere nulo
     while (line[i] && line[i] != '\n') {
         i++;
     }

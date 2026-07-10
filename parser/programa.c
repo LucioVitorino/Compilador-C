@@ -36,8 +36,6 @@ ASTNode *parse_diretiva_include(Parser *p)
     
     // 1. Validar a abertura do delimitador '<'
     if (!parser_expect(p, "<", "Falta o delimitador de abertura '<' na diretiva #include", SYNC_INSTRUCAO)) {
-        // Se o utilizador escreveu: #include stdio.h>
-        // Entramos em modo pânico e limpamos até à próxima linha para não quebrar o int main()
         recover(p, SYNC_INSTRUCAO);
         return NULL;
     }
@@ -53,15 +51,12 @@ ASTNode *parse_diretiva_include(Parser *p)
     
     // 3. Validar o fecho do delimitador '>'
     if (!parser_expect(p, ">", "Falta o delimitador de fecho '>' na diretiva #include", SYNC_INSTRUCAO)) {
-        // Se o utilizador escreveu: #include <stdio.h
-        // Recuperamos aqui para proteger as linhas abaixo
         recover(p, SYNC_INSTRUCAO);
         free(filename);
         return NULL;
     }
     parser_next_token(p); // Consome '>'
     
-    // Monta o nó perfeitamente na AST se tudo correu bem
     ASTNode *inc = make_node(NODE_DIRETIVA_INCLUDE, line);
     ASTNode *file = make_folha(NODE_NOME_FICHEIRO, filename, line);
     add_filho(inc, file);
@@ -88,8 +83,6 @@ ASTNode *parse_programa(Parser *p)
         if (decl_global) {
             add_filho(lista_globais, decl_global);
         } else {
-            // Se o parse_declaracao_global falhar e o ponteiro não se mover,
-            // forçamos o avanço de um token para garantir que o loop quebra!
             if (p->current == antes_do_erro) {
                 parser_next_token(p);
             }

@@ -23,9 +23,6 @@ static int parse_sufixo_array_opcional_internal(Parser *p)
     return seen;
 }
 
-/* parametro := especificador_tipo resto_parametro
-   resto_parametro := asteriscos IDENTIFIER sufixo_array_opcional | epsilon
-*/
 static ASTNode *parse_parametro_internal(Parser *p)
 {
     ASTNode *tipo = parse_especificador_tipo(p);
@@ -50,7 +47,7 @@ static ASTNode *parse_parametro_internal(Parser *p)
 static void parse_lista_parametros_internal(Parser *p, ASTNode *func_node)
 {
     do {
-        // 1. Lê o tipo do parâmetro (ex: int, float, char)
+        // Lê o tipo do parâmetro (ex: int, float, char)
         ASTNode *tipo_param = parse_especificador_tipo(p);
         if (!tipo_param) {
             syntax_error_recover(p, "Esperado um tipo de dado válido no parâmetro", SYNC_DECLARACAO);
@@ -60,19 +57,18 @@ static void parse_lista_parametros_internal(Parser *p, ASTNode *func_node)
         // Processa ponteiros opcionais (ex: int *ptr)
         parse_asteriscos(p);
 
-        // 2. Lê o nome/identificador do parâmetro (ex: a, b)
+        // Lê o nome/identificador do parâmetro (ex: a, b)
         if (p->current && p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0)
         {
             const char *p_name = p->current->value ? p->current->value : "";
             int p_line = p->current->line;
             
-            // 3. Cria o nó do parâmetro reutilizando NODE_DECLARACAO_VARIAVEL
             ASTNode *param_node = make_folha(NODE_DECLARACAO_VARIAVEL, p_name, p_line);
             
-            // 4. Une o tipo do dado ao nó do parâmetro
+            //Une o tipo do dado ao nó do parâmetro
             add_filho(param_node, tipo_param);
             
-            // 5. ANEXA o parâmetro diretamente como filho do nó da função pai!
+            //ANEXA o parâmetro diretamente como filho do nó da função pai!
             add_filho(func_node, param_node);
             
             parser_next_token(p); // Consome o IDENTIFIER

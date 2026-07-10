@@ -150,7 +150,7 @@ ASTNode *parse_declaracao_global(Parser *p)
             }
             else
             {
-                ASTNode *body = parse_bloco(p); // É a definição completa, processa o bloco {}
+                ASTNode *body = parse_bloco(p);
                 if (body)
                     add_filho(func, body);
                 else
@@ -205,7 +205,6 @@ ASTNode *parse_declaracao_global(Parser *p)
                 }
                 else
                 {
-                    // skip junk until ;
                     while (p->current && p->current->value && strcmp(p->current->value, ";") != 0)
                         parser_next_token(p);
                     recover_declaracao(p, "Esperado identificador após ',' na declaracao global");

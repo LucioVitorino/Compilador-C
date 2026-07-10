@@ -6,6 +6,7 @@ SymbolTable *create_table(SymbolTable *parent) {
     SymbolTable *st = (SymbolTable *)malloc(sizeof(SymbolTable));
     if (!st) return NULL;
     st->parent = parent;
+    st->next_endereco = 0;
     for (int i = 0; i < HASH_SIZE; i++) {
         st->table[i] = NULL;
     }
@@ -37,10 +38,32 @@ bool insert_symbol(SymbolTable *st, Symbol *sym) {
         current = current->next;
     }
     
+    if (sym->endereco == 0) {
+        long tamanho = sym->tamanho > 0 ? sym->tamanho : 1;
+        sym->endereco = st->next_endereco;
+        st->next_endereco += tamanho;
+    }
+
     // Insere no início da lista encadeada daquela posição (Tratamento de Colisão)
     sym->next = st->table[idx];
     st->table[idx] = sym;
     return true;
+}
+
+Symbol *lookup_symbol_current_scope(SymbolTable *st, const char *lexeme) {
+    if (!st || !lexeme) return NULL;
+
+    unsigned int idx = hash_function(lexeme);
+    Symbol *current = st->table[idx];
+
+    while (current) {
+        if (strcmp(current->lexeme, lexeme) == 0) {
+            return current;
+        }
+        current = current->next;
+    }
+
+    return NULL;
 }
 
 // Procura um símbolo de forma recursiva (Escopo Local -> Escopo Pai -> Global)
@@ -63,6 +86,28 @@ Symbol *lookup_symbol(SymbolTable *st, const char *lexeme) {
     }
     
     return NULL; // Símbolo não existe em nenhum escopo visível
+}
+
+const char *tipo_dado_to_string(TipoDado tipo) {
+    switch (tipo) {
+        case TIPO_INT: return "int";
+        case TIPO_FLOAT: return "float";
+        case TIPO_CHAR: return "char";
+        case TIPO_STRING: return "string";
+        case TIPO_VOID:
+        default: return "void";
+    }
+}
+
+bool tipo_dado_eh_numerico(TipoDado tipo) {
+    return (tipo == TIPO_INT || tipo == TIPO_FLOAT || tipo == TIPO_CHAR);
+}
+
+bool tipos_compativeis(TipoDado destino, TipoDado origem) {
+    if (destino == origem) return true;
+    if (destino == TIPO_FLOAT && origem == TIPO_INT) return true;
+    if (destino == TIPO_INT && origem == TIPO_CHAR) return true;
+    return false;
 }
 
 // Liberta a memória de uma tabela e de todas as suas entradas
@@ -102,8 +147,8 @@ void print_table(SymbolTable *st) {
     printf("\n===================================================================================================\n");
     printf("                                   TABELA DE SÍMBOLS ATUAL                                         \n");
     printf("===================================================================================================\n");
-    printf("%-12s | %-12s | %-5s | %-10s | %-8s | %-8s | %-6s | %-5s | %-6s\n", 
-           "Lexema", "Token", "Linha", "Categoria", "Tipo", "Escopo", "Tamanho", "Inic.", "Valor");
+        printf("%-12s | %-12s | %-5s | %-10s | %-8s | %-8s | %-10s | %-8s | %-6s | %-5s | %-6s\n", 
+            "Lexema", "Token", "Linha", "Categoria", "Tipo", "Escopo", "Endereco", "Dimensoes", "Tamanho", "Inic.", "Valor");
     printf("---------------------------------------------------------------------------------------------------\n");
     
     for (int i = 0; i < HASH_SIZE; i++) {
@@ -117,11 +162,7 @@ void print_table(SymbolTable *st) {
             else if (s->categoria == CAT_PARAMETRO) cat_str = "PARAMETRO";
 
             // 2. Mapear Tipo de Dado para texto legível
-            char *tipo_str = "void";
-            if (s->tipo_dado == TIPO_INT)       tipo_str = "int";
-            else if (s->tipo_dado == TIPO_FLOAT)  tipo_str = "float";
-            else if (s->tipo_dado == TIPO_CHAR)   tipo_str = "char";
-            else if (s->tipo_dado == TIPO_STRING) tipo_str = "string";
+            const char *tipo_str = tipo_dado_to_string(s->tipo_dado);
 
             // 3. Mapear Escopo para texto legível
             char *esc_str = "GLOBAL";
@@ -129,13 +170,15 @@ void print_table(SymbolTable *st) {
             else if (s->escopo == ESCOPO_CLASSE) esc_str = "CLASSE";
 
             // 4. Imprimir a linha formatada com todos os campos da imagem
-            printf("%-12s | %-12s | %-5d | %-10s | %-8s | %-8s | %-5d B | %-5s | %-6s\n", 
+                 printf("%-12s | %-12s | %-5d | %-10s | %-8s | %-8s | %-10ld | %-8d | %-5d B | %-5s | %-6s\n", 
                    s->lexeme, 
                    s->token, 
                    s->linha, 
                    cat_str, 
                    tipo_str, 
                    esc_str, 
+                     s->endereco,
+                     s->qtd_dimensoes,
                    s->tamanho, 
                    s->inicializado ? "SIM" : "NAO", 
                    s->valor ? s->valor : "NULL");

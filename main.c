@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     // 1. Integrar e Executar Parser Sintático
     parser_init(&p, tokens);
     ASTNode *ast = parse_programa(&p);
-    print_ast(ast, 0);
+   // print_ast(ast, 0);
 
     // Se houver erros sintáticos, paramos imediatamente antes da semântica
     if (parser_error_count() > 0) {
@@ -40,7 +40,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    printf("\n\n=== ANÁLISE SEMÂNTICA ===\n\n");
+    //printf("\n\n=== ANÁLISE SEMÂNTICA ===\n\n");
 
     // 2. Inicializar a Tabela de Símbolos Global (Pai = NULL)
     symbol_table = create_table(NULL);
@@ -54,12 +54,12 @@ int main(int argc, char **argv)
 
     // 3. Executar a Verificação Semântica preenchendo a tabela
     // (Esta é a função que vai navegar pelos nós da AST)
-    printf("A varrer a árvore e a construir o mapa de símbolos...\n");
+    //printf("A varrer a árvore e a construir o mapa de símbolos...\n");
    analisar_semantica(ast, symbol_table, ESCOPO_GLOBAL);
     // analisar_semantica(ast, symbol_table); 
 
     // 4. Mostrar o resultado do mapa de símbolos para validação
-    print_table(symbol_table);
+    //print_table(symbol_table);
 
     // === LIMPEZA DE MEMÓRIA ===
     free_table(symbol_table);
