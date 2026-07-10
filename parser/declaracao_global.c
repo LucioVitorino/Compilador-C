@@ -58,7 +58,42 @@ ASTNode *parse_declaracao_global(Parser *p)
             }
             return n;
         }
-        recover_declaracao(p, "Diretiva de preprocessador inválida");
+        else if (p->current && p->current->type && strcmp(p->current->type, "TOK_DEFINE") == 0)
+        {
+            parser_next_token(p); // consume 'define'
+            ASTNode *n = make_node(NODE_DIRETIVA_DEFINE, line);
+            
+            if (p->current && p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0) {
+                n->valor = strdup(p->current->value ? p->current->value : "");
+                parser_next_token(p); // consume IDENTIFIER
+            } else {
+                recover_declaracao(p, "Esperado identificador após '#define'");
+                return n;
+            }
+            
+            if (p->current && p->current->type && 
+                (strcmp(p->current->type, "INT_LITERAL") == 0 ||
+                 strcmp(p->current->type, "FLOAT_LITERAL") == 0 ||
+                 strcmp(p->current->type, "STRING_LITERAL") == 0 ||
+                 strcmp(p->current->type, "CHAR_LITERAL") == 0 ||
+                 strcmp(p->current->type, "IDENTIFIER") == 0)) {
+                
+                NodeType nt = NODE_IDENTIFICADOR;
+                if (strcmp(p->current->type, "INT_LITERAL") == 0) nt = NODE_LIT_INTEIRO;
+                else if (strcmp(p->current->type, "FLOAT_LITERAL") == 0) nt = NODE_LIT_REAL;
+                else if (strcmp(p->current->type, "CHAR_LITERAL") == 0) nt = NODE_LIT_CHAR;
+                else if (strcmp(p->current->type, "STRING_LITERAL") == 0) nt = NODE_LIT_STRING;
+                
+                ASTNode *val_node = make_folha(nt, p->current->value, p->current->line);
+                add_filho(n, val_node);
+                parser_next_token(p); // consume value token
+            }
+            return n;
+        }
+        else
+        {
+            recover_declaracao(p, "Diretiva de preprocessador inválida");
+        }
     }
 
     // legacy: preprocessor directive captured as single token
@@ -129,6 +164,7 @@ ASTNode *parse_declaracao_global(Parser *p)
             // 1. Criamos o nó da função imediatamente para que seja o pai dos parâmetros
             ASTNode *func = make_node(NODE_DECLARACAO_FUNCAO, line);
             func->valor = strdup(name);
+            func->pointer_level = stars;
             
             // 2. O primeiro filho é o tipo de retorno
             add_filho(func, tipo);
@@ -161,9 +197,11 @@ ASTNode *parse_declaracao_global(Parser *p)
         else
         {
             // first declarator
-            parse_sufixo_array_opcional(p);
+            int dims = parse_sufixo_array_opcional(p);
             ASTNode *var = make_node(NODE_DECLARACAO_VARIAVEL, line);
             var->valor = strdup(name);
+            var->pointer_level = stars;
+            var->dimensions = dims;
             add_filho(var, tipo);
             // inicialização
             if (p->current && p->current->value && strcmp(p->current->value, "=") == 0)
@@ -182,15 +220,17 @@ ASTNode *parse_declaracao_global(Parser *p)
             while (p->current && p->current->value && strcmp(p->current->value, ",") == 0)
             {
                 parser_next_token(p); // consume ','
-                parse_asteriscos(p);
+                int next_stars = parse_asteriscos(p);
                 if (p->current && p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0)
                 {
                     const char *nname = p->current->value ? p->current->value : "";
                     int nline = p->current->line;
                     parser_next_token(p);
-                    parse_sufixo_array_opcional(p);
+                    int next_dims = parse_sufixo_array_opcional(p);
                     ASTNode *v = make_node(NODE_DECLARACAO_VARIAVEL, nline);
                     v->valor = strdup(nname);
+                    v->pointer_level = next_stars;
+                    v->dimensions = next_dims;
                     add_filho(v, tipo);
                     if (p->current && p->current->value && strcmp(p->current->value, "=") == 0)
                     {

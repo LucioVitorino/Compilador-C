@@ -6,8 +6,14 @@ ASTNode *parse_primario(Parser *p)
     if (p->current->type && (strcmp(p->current->type, "INT_LITERAL") == 0 || strcmp(p->current->type, "FLOAT_LITERAL") == 0 || strcmp(p->current->type, "IDENTIFIER") == 0 || strcmp(p->current->type, "STRING_LITERAL") == 0 || strcmp(p->current->type, "CHAR_LITERAL") == 0)) {
         const char *val = p->current->value ? p->current->value : "";
         int line = p->current->line;
+        NodeType nt = NODE_IDENTIFICADOR;
+        if (strcmp(p->current->type, "INT_LITERAL") == 0) nt = NODE_LIT_INTEIRO;
+        else if (strcmp(p->current->type, "FLOAT_LITERAL") == 0) nt = NODE_LIT_REAL;
+        else if (strcmp(p->current->type, "CHAR_LITERAL") == 0) nt = NODE_LIT_CHAR;
+        else if (strcmp(p->current->type, "STRING_LITERAL") == 0) nt = NODE_LIT_STRING;
+        
         parser_next_token(p);
-        return make_folha(NODE_IDENTIFICADOR, val, line);
+        return make_folha(nt, val, line);
     }
     if (parser_consume_if_value(p, "(")) {
         ASTNode *e = parse_expressao(p);

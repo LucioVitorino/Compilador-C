@@ -12,15 +12,18 @@ static int parse_asteriscos_internal(Parser *p)
 
 static int parse_sufixo_array_opcional_internal(Parser *p)
 {
-    int seen = 0;
+    int count = 0;
     while (p->current && p->current->value && strcmp(p->current->value, "[") == 0) {
-        // consume [ expr ]
         parser_next_token(p);
-        parse_expressao(p);
-        if (p->current && p->current->value && strcmp(p->current->value, "]") == 0) parser_next_token(p);
-        seen = 1;
+        if (p->current && !(p->current->value && strcmp(p->current->value, "]") == 0)) {
+            parse_expressao(p);
+        }
+        if (p->current && p->current->value && strcmp(p->current->value, "]") == 0) {
+            parser_next_token(p);
+        }
+        count++;
     }
-    return seen;
+    return count;
 }
 
 static ASTNode *parse_parametro_internal(Parser *p)
@@ -55,7 +58,7 @@ static void parse_lista_parametros_internal(Parser *p, ASTNode *func_node)
         }
 
         // Processa ponteiros opcionais (ex: int *ptr)
-        parse_asteriscos(p);
+        int stars = parse_asteriscos(p);
 
         // Lê o nome/identificador do parâmetro (ex: a, b)
         if (p->current && p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0)
@@ -64,6 +67,7 @@ static void parse_lista_parametros_internal(Parser *p, ASTNode *func_node)
             int p_line = p->current->line;
             
             ASTNode *param_node = make_folha(NODE_DECLARACAO_VARIAVEL, p_name, p_line);
+            param_node->pointer_level = stars;
             
             //Une o tipo do dado ao nó do parâmetro
             add_filho(param_node, tipo_param);
@@ -74,7 +78,8 @@ static void parse_lista_parametros_internal(Parser *p, ASTNode *func_node)
             parser_next_token(p); // Consome o IDENTIFIER
             
             // Suporte opcional a arrays (ex: int arr[])
-            parse_sufixo_array_opcional(p);
+            int dims = parse_sufixo_array_opcional(p);
+            param_node->dimensions = dims;
         }
         else
         {

@@ -21,7 +21,8 @@ typedef enum {
     TIPO_FLOAT,
     TIPO_CHAR,
     TIPO_VOID,
-    TIPO_STRING
+    TIPO_STRING,
+    TIPO_STRUCT
 } TipoDado;
 
 typedef enum {
@@ -60,6 +61,8 @@ typedef struct Symbol {
     ParamNode        *parametros;     // Lista de parâmetros se for função
     char             *modificadores;  // public, private, static
     TipoDado         retorno;         // Tipo de retorno se for função
+    char             *tipo_customizado; // Nome de struct/typedef customizado
+    struct SymbolTable *escopo_membros; // Tabela de símbolos para atributos de struct
     
     struct Symbol    *next;           // Próximo em caso de colisão na Hash
 } Symbol;
@@ -85,5 +88,7 @@ bool         tipos_compativeis(TipoDado destino, TipoDado origem);
 void         free_table(SymbolTable *st);
 void         print_table(SymbolTable *st);
 void         analisar_semantica(ASTNode *node, SymbolTable *st, EscopoSimbolo escopo_atual);
+int          obter_numero_erros_semanticos(void);
+TipoDado     obter_tipo_expressao(ASTNode *node, SymbolTable *st);
 
 #endif

@@ -38,6 +38,7 @@ typedef enum {
     NODE_LIT_REAL,
     NODE_LIT_CHAR,
     NODE_LIT_STRING,
+    NODE_VAZIO,
 } NodeType;
 
 typedef struct ASTNode {
@@ -48,6 +49,8 @@ typedef struct ASTNode {
     struct ASTNode **filhos;
     int n_filhos;
     int cap_filhos;
+    int pointer_level;
+    int dimensions;
 } ASTNode;
 
 ASTNode *make_node(NodeType type, int linha);

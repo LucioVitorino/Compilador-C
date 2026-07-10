@@ -94,6 +94,7 @@ const char *tipo_dado_to_string(TipoDado tipo) {
         case TIPO_FLOAT: return "float";
         case TIPO_CHAR: return "char";
         case TIPO_STRING: return "string";
+        case TIPO_STRUCT: return "struct";
         case TIPO_VOID:
         default: return "void";
     }
@@ -133,6 +134,9 @@ void free_table(SymbolTable *st) {
                 free(ptmp->nome);
                 free(ptmp);
             }
+            
+            if (tmp->tipo_customizado) free(tmp->tipo_customizado);
+            if (tmp->escopo_membros && tmp->categoria == CAT_CLASSE) free_table(tmp->escopo_membros);
             
             free(tmp);
         }

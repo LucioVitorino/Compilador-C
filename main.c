@@ -29,11 +29,11 @@ int main(int argc, char **argv)
     // 1. Integrar e Executar Parser Sintático
     parser_init(&p, tokens);
     ASTNode *ast = parse_programa(&p);
-   // print_ast(ast, 0);
+    //print_ast(ast, 0);
 
     // Se houver erros sintáticos, paramos imediatamente antes da semântica
     if (parser_error_count() > 0) {
-        fprintf(stderr, "\nForam encontrados %d erro(s) sintático(s). Abortando Análise Semântica.\n", parser_error_count());
+        fprintf(stderr, "Total de erros: %d\n", parser_error_count());
         free_ast(ast);
         token_clear_list(&tokens);
         close(fd);
@@ -55,16 +55,23 @@ int main(int argc, char **argv)
     // 3. Executar a Verificação Semântica preenchendo a tabela
     // (Esta é a função que vai navegar pelos nós da AST)
     //printf("A varrer a árvore e a construir o mapa de símbolos...\n");
-   analisar_semantica(ast, symbol_table, ESCOPO_GLOBAL);
-    // analisar_semantica(ast, symbol_table); 
+    analisar_semantica(ast, symbol_table, ESCOPO_GLOBAL);
 
-    // 4. Mostrar o resultado do mapa de símbolos para validação
-    //print_table(symbol_table);
+    int sem_errors = obter_numero_erros_semanticos();
+    if (sem_errors > 0) {
+        fprintf(stderr, "Total de erros: %d\n", sem_errors);
+        free_table(symbol_table);
+        free_ast(ast);
+        token_clear_list(&tokens);
+        close(fd);
+        return 1;
+    }
 
     // === LIMPEZA DE MEMÓRIA ===
     free_table(symbol_table);
     free_ast(ast);
     token_clear_list(&tokens);
     close(fd);
+    printf("sucesso\n");
     return 0;
 }

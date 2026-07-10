@@ -45,15 +45,36 @@ ASTNode *parse_lista_itens_bloco(Parser *p)
 
 ASTNode *parse_item_bloco(Parser *p)
 {
+    // Pular múltiplos comentários seguidos ou intercalados
+    while (p->current && p->current->type && strcmp(p->current->type, "COMMENT") == 0) {
+        parser_next_token(p);
+    }
+
     if (p->current && p->current->type && 
         (strcmp(p->current->type, "KEYWORD_INT") == 0 || 
          strcmp(p->current->type, "KEYWORD_FLOAT") == 0 || 
          strcmp(p->current->type, "KEYWORD_CHAR") == 0 || 
          strcmp(p->current->type, "KEYWORD_VOID") == 0 || 
+         strcmp(p->current->type, "KEYWORD_STRUCT") == 0 ||
          strcmp(p->current->type, "IDENTIFIER") == 0)) {
         
-        ASTNode *saved = parse_declaracao_variavel_local(p);
-        if (saved) return saved;
+        bool eh_decl = false;
+        if (strcmp(p->current->type, "IDENTIFIER") == 0) {
+            t_token *t = p->current->next;
+            while (t && t->value && strcmp(t->value, "*") == 0) {
+                t = t->next;
+            }
+            if (t && t->type && strcmp(t->type, "IDENTIFIER") == 0) {
+                eh_decl = true;
+            }
+        } else {
+            eh_decl = true;
+        }
+
+        if (eh_decl) {
+            ASTNode *saved = parse_declaracao_variavel_local(p);
+            if (saved) return saved;
+        }
     }
     return parse_instrucao(p);
 }
@@ -62,7 +83,7 @@ ASTNode *parse_declaracao_variavel_local(Parser *p)
 {
     ASTNode *tipo = parse_especificador_tipo(p);
     if (!tipo) return NULL;
-    parse_asteriscos(p);
+    int stars = parse_asteriscos(p);
     
     if (!p->current || !p->current->type || strcmp(p->current->type, "IDENTIFIER") != 0) {
         syntax_error_recover(p, "Esperado identificador após o especificador de tipo", SYNC_INSTRUCAO);
@@ -72,11 +93,13 @@ ASTNode *parse_declaracao_variavel_local(Parser *p)
     const char *name = p->current->value ? p->current->value : "";
     int line = p->current->line;
     parser_next_token(p);
-    parse_sufixo_array_opcional(p);
+    int dims = parse_sufixo_array_opcional(p);
     
     // Criação do nó principal da declaração
     ASTNode *n = make_node(NODE_DECLARACAO_VARIAVEL, line);
     n->valor = strdup(name);
+    n->pointer_level = stars;
+    n->dimensions = dims;
     add_filho(n, tipo); // Tipo é o primeiro filho
 
     // Captura da inicialização da primeira variável
@@ -93,16 +116,18 @@ ASTNode *parse_declaracao_variavel_local(Parser *p)
     // Suporte para declarações múltiplas na mesma linha (ex: int x = 5, y = 10;)
     while (p->current && p->current->value && strcmp(p->current->value, ",") == 0) {
         parser_next_token(p); // Consome ','
-        parse_asteriscos(p);
+        int next_stars = parse_asteriscos(p);
         
         if (p->current && p->current->type && strcmp(p->current->type, "IDENTIFIER") == 0) {
             const char *next_name = p->current->value ? p->current->value : "";
             int next_line = p->current->line;
             parser_next_token(p);
-            parse_sufixo_array_opcional(p);
+            int next_dims = parse_sufixo_array_opcional(p);
             
             ASTNode *next_var = make_node(NODE_DECLARACAO_VARIAVEL, next_line);
             next_var->valor = strdup(next_name);
+            next_var->pointer_level = next_stars;
+            next_var->dimensions = next_dims;
             
             ASTNode *tipo_clone = make_node(NODE_ESPECIFICADOR_TIPO, next_line);
             tipo_clone->valor = strdup(tipo->valor ? tipo->valor : "int");
@@ -260,10 +285,10 @@ ASTNode *parse_instrucao_for(Parser *p)
     ASTNode *body = parse_instrucao(p);
     
     ASTNode *n = make_node(NODE_FOR, line);
-    if (init) add_filho(n, init);
-    if (cond) add_filho(n, cond);
-    if (inc) add_filho(n, inc);
-    if (body) add_filho(n, body);
+    add_filho(n, init ? init : make_node(NODE_VAZIO, line));
+    add_filho(n, cond ? cond : make_node(NODE_VAZIO, line));
+    add_filho(n, inc ? inc : make_node(NODE_VAZIO, line));
+    add_filho(n, body ? body : make_node(NODE_VAZIO, line));
     return n;
 }
 
@@ -311,7 +336,7 @@ ASTNode *parse_instrucao_do(Parser *p)
     }
     
     // Construção segura da AST
-    ASTNode *n = make_node(NODE_WHILE, line); // Ou NODE_DO_WHILE
+    ASTNode *n = make_node(NODE_DO_WHILE, line);
     if (body) add_filho(n, body);
     if (cond) add_filho(n, cond);
     

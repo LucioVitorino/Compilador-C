@@ -11,6 +11,8 @@ ASTNode *make_node(NodeType type, int linha)
     n->filhos = NULL;
     n->n_filhos = 0;
     n->cap_filhos = 0;
+    n->pointer_level = 0;
+    n->dimensions = 0;
     return n;
 }
 
@@ -70,6 +72,7 @@ void print_ast(ASTNode *n, int depth)
         case NODE_LIT_REAL: name = "NODE_LIT_REAL"; break;
         case NODE_LIT_CHAR: name = "NODE_LIT_CHAR"; break;
         case NODE_LIT_STRING: name = "NODE_LIT_STRING"; break;
+        case NODE_VAZIO: name = "NODE_VAZIO"; break;
         default: name = "NODE_UNKNOWN"; break;
     }
     for (int i = 0; i < depth; ++i) printf("  ");
@@ -79,6 +82,8 @@ void print_ast(ASTNode *n, int depth)
     /* If node has a direct value or op, append them on the same line */
     if (n->valor) printf(" val=\"%s\"", n->valor);
     if (n->op && n->type != NODE_NOME_FICHEIRO) printf(" op=\"%s\"", n->op);
+    if (n->pointer_level > 0) printf(" ptr=%d", n->pointer_level);
+    if (n->dimensions > 0) printf(" dim=%d", n->dimensions);
 
     /* Special formatting for include filename kinds */
     if (n->type == NODE_NOME_FICHEIRO && n->valor) {
